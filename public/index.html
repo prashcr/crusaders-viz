@@ -64,7 +64,10 @@
                 })
                 .attr('pointer-events', 'none')
 
-            const color = d3.scale.category20c()
+            //const color = d3.scale.category20c()
+
+            const color = d3.scale.ordinal()
+                .range([ "#fdae6b", "#9ecae1", "#fdd0a2", "#969696", "#3182bd", "#a1d99b", "#c7e9c0", "#6baed6", "#bcbddc", "#74c476", "#3182bd", "#fdae6b", "756bb1", "#a1d99b"])
 
             const pie = d3.layout.pie()
                 .value(d => d.value)

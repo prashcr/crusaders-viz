@@ -28,7 +28,10 @@
         const map = new Datamap({
             element: document.getElementById('map'),
             projection: 'mercator',
-            scope: 'world'
+            scope: 'world',
+            fills: {
+                defaultFill: '#222'
+            }
         })
 
         map.addPlugin('pieChart', function pieChartPlugin(layer, data) {
@@ -39,8 +42,10 @@
             const className = 'piecharts'
 
             function getWidthPx(strength) {
-                return strength * 50 + 25
+                return strength * 70 + 20
             }
+
+            const opa = 0.9
 
             const svg = layer.selectAll(className)
                 .data(data)
@@ -56,6 +61,7 @@
                     const r = Math.round(getWidthPx(d.strength) / 2)
                     return 'translate(' + r + ',' + r + ')'
                 })
+                .attr('pointer-events', 'none')
 
             const color = d3.scale.category20c()
 
@@ -75,7 +81,7 @@
                     .outerRadius(r)(d)
                 })
                 .attr('fill', d => color(d.data.label))
-                .attr('stroke', 'black')
+                .attr('fill-opacity', opa)
 
             const legendRectSize = 18
             const legendSpacing = 4
@@ -87,10 +93,11 @@
                 .attr('class', 'legend')
                 .attr('transform', (d, i) => {
                     const height = legendRectSize + legendSpacing
-                    const horz = 2 * legendRectSize
-                    const vert = i * height
+                    const horz = 2 * legendRectSize - 34
+                    const vert = i * height + 300
                     return 'translate(' + horz + ',' + vert + ')'
                 })
+                .attr('opacity', opa)
             
             legend.append('rect')
                 .attr('width', legendRectSize)

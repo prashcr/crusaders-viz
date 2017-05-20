@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Religious Conflicts</title>
+    <link rel="stylesheet" href="https://cdn.rawgit.com/MasterMaps/d3-slider/d18dff4b/d3.slider.css">
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet">
+    <style>
+        .legend {
+            font-size: 12px;
+        }
+        .legend-color {
+            stroke-width: 2px;
+        }
+    </style>
+</head>
+<body>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datamaps/0.5.8/datamaps.all.hires.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
+    <script src="https://cdn.rawgit.com/MasterMaps/d3-slider/d18dff4b/d3.slider.js"></script>
+    <h1 style="font-family: 'Merriweather', serif; text-align: center">Religious conflicts around the world</h1>
+    <div id="map" style="position: relative; width: 1000px; height: 600px; margin: auto;"></div>
+    <script>
+        const map = new Datamap({
+            element: document.getElementById('map'),
+            projection: 'mercator',
+            scope: 'world'
+        })
+
+        map.addPlugin('pieChart', function pieChartPlugin(layer, data) {
+            // hold this in a closure
+            const self = this
+
+            // a class you'll add to the DOM elements
+            const className = 'piecharts'
+
+            function getWidthPx(strength) {
+                return strength * 50 + 25
+            }
+
+            const svg = layer.selectAll(className)
+                .data(data)
+                .enter()
+                .append('svg')
+                .attr('class', className)
+                .attr('width', d => getWidthPx(d.strength))
+                .attr('height', d => getWidthPx(d.strength))
+                .attr('x', d => self.latLngToXY(d.lat, d.lng)[0] - (getWidthPx(d.strength) / 2))
+                .attr('y', d => self.latLngToXY(d.lat, d.lng)[1] - (getWidthPx(d.strength) / 2))
+                .append('g')
+                .attr('transform', d => {
+                    const r = Math.round(getWidthPx(d.strength) / 2)
+                    return 'translate(' + r + ',' + r + ')'
+                })
+
+            const color = d3.scale.category20c()
+
+            const pie = d3.layout.pie()
+                .value(d => d.value)
+                .sort((a, b) => a.label.localeCompare(b.label))
+
+            const path = svg.selectAll('path')
+                .data(d => pie(d.percentageByReligion))
+                .enter()
+                .append('path')
+                .attr('d', function(d) {
+                    const strength = d3.select(this.parentNode).datum().strength
+                    const r = Math.round(getWidthPx(strength) / 2)
+                    return d3.svg.arc()
+                    .innerRadius(0)
+                    .outerRadius(r)(d)
+                })
+                .attr('fill', d => color(d.data.label))
+                .attr('stroke', 'black')
+
+            const legendRectSize = 18
+            const legendSpacing = 4
+
+            const legend = layer.selectAll('.legend')
+                .data(color.domain().sort())
+                .enter()
+                .append('g')
+                .attr('class', 'legend')
+                .attr('transform', (d, i) => {
+                    const height = legendRectSize + legendSpacing
+                    const horz = 2 * legendRectSize
+                    const vert = i * height
+                    return 'translate(' + horz + ',' + vert + ')'
+                })
+            
+            legend.append('rect')
+                .attr('width', legendRectSize)
+                .attr('height', legendRectSize)
+                .style('fill', color)
+                .style('stroke', color)
+
+            legend.append('text')
+                .attr('x', legendRectSize + legendSpacing)
+                .attr('y', legendRectSize - legendSpacing)
+                .text(d => d)
+        })
+
+        d3.json('clusters.json', (error, clusters) => {
+            if (error) return console.warn(error)
+
+            const cls = clusters.filter(d => d.date === '201704')
+
+            const sourcesArray = cls.map(d => d.totalSources)
+            const maxSources = Math.max.apply(null, sourcesArray)
+            const minSources = Math.min.apply(null, sourcesArray)
+            const articlesArray = cls.map(d => d.totalArticles)
+            const maxArticles = Math.max.apply(null, articlesArray)
+            const minArticles = Math.min.apply(null, articlesArray)
+            const eventsArray = cls.map(d => d.totalEvents)
+            const maxEvents = Math.max.apply(null, eventsArray)
+            const minEvents = Math.min.apply(null, eventsArray)
+
+            const data = cls.map(c => {
+                arr = []
+                for (let rel in c.percentageByReligion) {
+                    arr.push({label: rel, value: c.percentageByReligion[rel]})
+                }
+                c.percentageByReligion = arr
+                c.strength = (c.totalArticles - minArticles) / (maxArticles - minArticles)
+                return c
+            })
+
+            map.pieChart(data)
+        })
+    </script>
+</body>
+</html>
